@@ -1,10 +1,36 @@
-import * as THREE from 'three';
+import {
+    AmbientLight,
+    AnimationMixer,
+    AxesHelper,
+    Box3,
+    Cache,
+    CubeTextureLoader,
+    DirectionalLight,
+    GridHelper,
+    HemisphereLight,
+    LinearEncoding,
+    LoaderUtils,
+    LoadingManager,
+    PMREMGenerator,
+    PerspectiveCamera,
+    RGBFormat,
+    Scene,
+    SkeletonHelper,
+    UnsignedByteType,
+    Vector3,
+    WebGLRenderer,
+    sRGBEncoding,
+} from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { createElement, getElementWidth, getElementHeight } from '../utility/DomHelper';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { createElement, getElementWidth, getElementHeight } from '../utility/dom-helper';
+
+// var createBackground = require('three-vignette-background');
 
 const MAP_NAMES = [
     'map',
@@ -31,6 +57,8 @@ export class Viewer {
             ambientColor: 0xFFFFFF,
             directIntensity: 0.8 * Math.PI, // TODO(#116)
             directColor: 0xFFFFFF,
+            bgColor1: '#ffffff',
+            bgColor2: '#353535'
         }
 
         this.lights = [];
@@ -39,26 +67,34 @@ export class Viewer {
         this.clips = [];
         this.prevTime = 0;
 
-        this.scene = new THREE.Scene();
-        const fov = options.preset === 45;
-        this.defaultCamera = new THREE.PerspectiveCamera(fov, el.clientWidth / el.clientHeight, 0.01, 1000);
+        this.scene = new Scene();
+        const fov = 45;
+        this.defaultCamera = new PerspectiveCamera(fov, el.clientWidth / el.clientHeight, 0.01, 1000);
         this.activeCamera = this.defaultCamera;
 
         this.scene.add(this.defaultCamera);
-        this.renderer = window.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = window.renderer = new WebGLRenderer({ antialias: true });
         this.renderer.physicallyCorrectLights = true;
-        this.renderer.outputEncoding = THREE.sRGBEncoding;
+        this.renderer.outputEncoding = sRGBEncoding;
         this.renderer.setClearColor(0xcccccc);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(el.clientWidth, el.clientHeight);
 
-        this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+        this.pmremGenerator = new PMREMGenerator(this.renderer);
         this.pmremGenerator.compileEquirectangularShader();
 
         this.controls = new OrbitControls(this.defaultCamera, this.renderer.domElement);
         this.controls.autoRotate = false;
         this.controls.autoRotateSpeed = -10;
         this.controls.screenSpacePanning = true;
+
+
+        // this.vignette = createBackground({
+        //     aspect: this.defaultCamera.aspect,
+        //     grainScale: IS_IOS ? 0 : 0.001, // mattdesl/three-vignette-background#1
+        //     colors: [this.state.bgColor1, this.state.bgColor2]
+        // });
+
         this.el.appendChild(this.renderer.domElement);
 
         this.animate = this.animate.bind(this);
@@ -78,20 +114,31 @@ export class Viewer {
         const { clientHeight, clientWidth } = this.el.parentElement;
         this.defaultCamera.aspect = clientWidth / clientHeight;
         this.defaultCamera.updateProjectionMatrix();
-
+        this.renderer.setSize(clientWidth, clientHeight);
     }
 
     addLights() {
         const state = this.state;
-        const light1 = new THREE.AmbientLight(state.ambientColor, state.ambientIntensity);
+        const light1 = new AmbientLight(state.ambientColor, state.ambientIntensity);
         light1.name = 'ambient_light';
         this.defaultCamera.add(light1);
 
-        const light2 = new THREE.DirectionalLight(state.directColor, state.directIntensity);
+        const light2 = new DirectionalLight(state.directColor, state.directIntensity);
         light2.position.set(0.5, 0, 0.866); // ~60º
         light2.name = 'main_light';
         this.defaultCamera.add(light2);
         this.lights.push(light1, light2);
+    }
+
+    updateTextureEncoding() {
+        const encoding = this.state.textureEncoding === 'sRGB'
+            ? sRGBEncoding
+            : LinearEncoding;
+        traverseMaterials(this.content, (material) => {
+            if (material.map) material.map.encoding = encoding;
+            if (material.emissiveMap) material.emissiveMap.encoding = encoding;
+            if (material.map || material.emissiveMap) material.needsUpdate = true;
+        });
     }
 
     animate(time) {
@@ -110,7 +157,7 @@ export class Viewer {
     }
 
     /**
-     * @param {Array<THREE.AnimationClip} clips
+     * @param {Array<AnimationClip} clips
      */
     setClips(clips) {
         if (this.mixer) {
@@ -122,7 +169,7 @@ export class Viewer {
         this.clips = clips;
         if (!clips.length) return;
 
-        this.mixer = new THREE.AnimationMixer(this.content);
+        this.mixer = new AnimationMixer(this.content);
     }
 
     /**
@@ -145,15 +192,16 @@ export class Viewer {
     setContent(object, clips) {
         // this.clear();
 
-        const box = new THREE.Box3().setFromObject(object);
-        const size = box.getSize(new THREE.Vector3()).length();
-        const center = box.getCenter(new THREE.Vector3());
+        const box = new Box3().setFromObject(object);
+        const size = box.getSize(new Vector3()).length();
+        const center = box.getCenter(new Vector3());
 
         this.controls.reset(object, clips);
 
         object.position.x += (object.position.x - center.x);
         object.position.y += (object.position.y - center.y);
         object.position.z += (object.position.z - center.z);
+
         this.controls.maxDistance = size * 10;
         this.defaultCamera.near = size / 100;
         this.defaultCamera.far = size * 100;
@@ -162,7 +210,7 @@ export class Viewer {
         if (this.options.cameraPosition) {
 
             this.defaultCamera.position.fromArray(this.options.cameraPosition);
-            this.defaultCamera.lookAt(new THREE.Vector3());
+            this.defaultCamera.lookAt(new Vector3());
 
         } else {
 
@@ -187,7 +235,7 @@ export class Viewer {
             if (node.isLight) {
                 this.state.addLights = false;
             } else if (node.isMesh) {
-                // TODO(https://github.com/mrdoob/three.js/pull/18235): Clean up.
+                // TODO(https://github.com/mrdoob/js/pull/18235): Clean up.
                 node.material.depthWrite = !node.material.transparent;
             }
         });
@@ -197,21 +245,29 @@ export class Viewer {
         // this.updateLights();
         // this.updateGUI();
         // this.updateEnvironment();
-        // this.updateTextureEncoding();
+        this.updateTextureEncoding();
         // this.updateDisplay();
-
         window.content = this.content;
-        console.info('[glTF Viewer] THREE.Scene exported as `window.content`.');
-        // this.printGraph(this.content);
+        console.info('[glTF Viewer] Scene exported as `window.content`.');
+        this.printGraph(this.content);
+    }
+
+
+    printGraph(node) {
+
+        console.group(' <' + node.type + '> ' + node.name);
+        node.children.forEach((child) => this.printGraph(child));
+        console.groupEnd();
+
     }
 
 
     load(url, rootPath, assetMap) {
-        const baseURL = THREE.LoaderUtils.extractUrlBase(url);
+        const baseURL = LoaderUtils.extractUrlBase(url);
 
         return new Promise((resolve, reject) => {
             //正在加载的文件管理
-            const manager = new THREE.LoadingManager();
+            const manager = new LoadingManager();
             manager.setURLModifier((url, path) => {
                 const normalizedURL = rootPath + decodeURI(url)
                     .replace(baseURL, '')
@@ -248,6 +304,16 @@ export class Viewer {
         });
 
     }
+}
+
+function traverseMaterials(object, callback) {
+    object.traverse((node) => {
+        if (!node.isMesh) return;
+        const materials = Array.isArray(node.material)
+            ? node.material
+            : [node.material];
+        materials.forEach(callback);
+    });
 }
 
 

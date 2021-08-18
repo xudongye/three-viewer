@@ -69,7 +69,6 @@ class App {
    * @param  {Map<string, File>} fileMap
    */
     load(fileMap) {
-        debugger
         let rootFile;
         let rootPath;
         Array.from(fileMap).forEach(([path, file]) => {
@@ -82,7 +81,6 @@ class App {
         if (!rootFile) {
             this.onError('No .gltf or .glb asset found.');
         }
-        debugger
         this.view(rootFile, rootPath, fileMap);
     }
 
@@ -109,7 +107,6 @@ class App {
             .then((gltf) => {
                 if (!this.options.kiosk) {
                     // this.validationCtrl.validate(fileURL, rootPath, fileMap, gltf);
-                    debugger
                 }
                 cleanup();
             });
