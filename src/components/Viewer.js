@@ -29,19 +29,10 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { createElement, getElementWidth, getElementHeight } from '../utility/dom-helper';
+import '../scss/three-viewer.scss';
+import { ToolBar } from './ToolBar';
 
 // var createBackground = require('three-vignette-background');
-
-const MAP_NAMES = [
-    'map',
-    'aoMap',
-    'emissiveMap',
-    'glossinessMap',
-    'metalnessMap',
-    'normalMap',
-    'roughnessMap',
-    'specularMap',
-];
 
 const DEFAULT_CAMERA = '[default]';
 
@@ -50,6 +41,7 @@ export class Viewer {
         this.el = el;
         this.options = options;
         this.state = {
+            wireframe: false,
             background: false,
             addLights: true,
             exposure: 1.0,
@@ -106,12 +98,21 @@ export class Viewer {
     }
 
     init() {
+        this.toolbar = new ToolBar(this.el, {
+            setWireframe: () => { this.setWireframe() }
+        })
 
+    }
+
+    setWireframe() {
+        debugger
+        traverseMaterials(this.content, (material) => {
+            material.wireframe = this.state.wireframe;
+        })
     }
 
 
     resize() {
-
         const { clientHeight, clientWidth } = this.el.parentElement;
         this.defaultCamera.aspect = clientWidth / clientHeight;
         this.defaultCamera.updateProjectionMatrix();
@@ -254,9 +255,9 @@ export class Viewer {
         } else {
 
             this.defaultCamera.position.copy(center);
-            this.defaultCamera.position.x += size / 2.0;
-            this.defaultCamera.position.y += size / 5.0;
-            this.defaultCamera.position.z += size / 2.0;
+            this.defaultCamera.position.x += size / 1.4;
+            this.defaultCamera.position.y += size / 4.0;
+            this.defaultCamera.position.z += size / 1.4;
             this.defaultCamera.lookAt(center);
 
         }

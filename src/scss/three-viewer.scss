@@ -1,0 +1,413 @@
+
+button,input:focus{outline:0;} 
+
+$viewer-btn-width:80px;
+@mixin viewer-btn-activate {
+  background-color:rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+@mixin viewer-bbar-btn {
+  float: left;
+  background: none;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: auto 80%;
+}
+.three-viewer {
+  position: relative;
+  background-color: #d6d7d9;  //d6d7d9
+  // background-image:url('./images/three-viewer-bg.png');
+  // background-size: 100% auto;
+  // background-repeat: no-repeat;
+  // background-position: center;
+
+  &.wireframePattern {
+    background-color: #011830; 
+  }
+
+  .dg.main {
+    position:absolute;
+    right:0px;
+    top:0px;
+    background-color: #000;
+
+    &.slice-panel {
+      top: 180px;
+    }
+  }
+  
+}
+
+$backBlur:blur(15px);
+
+
+.scrollbar-style ::-webkit-scrollbar {
+ 
+  width: 10px;  
+  height: 1px;
+  padding: 50px;
+  overflow: hidden;
+}
+.scrollbar-style ::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+
+
+  background: #686868;
+
+}
+.scrollbar-style ::-webkit-scrollbar-track {/*滚动条里面轨道*/
+  background: #2c2c30;
+
+}
+
+
+li {
+  list-style:none;
+}
+ul {
+  padding: 0px;
+  margin: 0px;
+}
+#viewcube { 
+  position: absolute; 
+  top: 0; 
+  right: 0; 
+  width: 150px; 
+  height: 150px; 
+}
+.viewer-bbar {
+  position: absolute;
+  bottom:10px;
+  background-color: rgba(0,0,0,0.8);
+  //viewer-bbar有几个按键，$viewer-btn-width就乘以几个---现在公式的计算结果不正确，后面再调整
+  left: calc((100% - (60px * 7 + 230px)) / 2) ;
+  border-radius: 30px;
+  color: #1b1b1b;
+  line-height: 0px;
+  backdrop-filter: $backBlur;
+  display: flex;
+  overflow: hidden;
+  transition: left 0.2s ease-in;
+  -moz-transition: left 0.2s ease-in;
+  -web-kit-transition: left 0.2s ease-in;  
+
+  &.shrink-state {
+    left: calc((100% -60px) / 2) ;
+
+    .toobar-fold {
+      .btn {
+        background-image:url('../images/toobar-unfold.svg') !important;
+      }
+    }
+  }
+
+  .activate {
+    @include viewer-btn-activate();
+  }
+
+
+  input[type="range"] {
+
+    background: #ddd;
+    -webkit-appearance: none;
+    height:4px;
+    padding: 0;
+    border: none;
+    border-radius: 2px;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;/*去除默认样式*/
+      height: 20px;
+      width: 20px;
+      transform: translateY(0px);
+      background: #fff;
+      border-radius: 15px;
+      border: 5px solid #477bdc;
+     }
+  
+  }
+  
+  
+  .explodeInput,  .explodeInput2 {
+    padding: 0px 10px;
+    display: none;
+    color: #fff;
+    text-align: center;
+
+    p {
+      margin: 0px;
+    }
+
+    input{
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+    
+  }
+  
+  &.barOffset {
+    left: 360px;
+  }
+
+  button{
+    height: 40px;
+    width: 60px;
+    margin: 0px 5px;
+    cursor:pointer;
+    border: none;
+  }
+  
+  
+}
+
+
+.toobar-fold {
+  width: 60px;
+  background: #1c1c1c;
+  height: auto;
+  float: left;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px 0px 0px 30px;  
+
+  &.normal-height {
+    border-radius: 30px;
+  }
+
+
+  .toobar-fold-btn {
+    cursor: pointer;
+    width: 42px;
+    height: 42px;
+    border-radius: 21px;
+    border: 1px solid rgba($color: #fff, $alpha: 0.2);
+    padding: 6px;
+    box-sizing: border-box;
+    .btn {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;  
+      background: rgba($color: #fff, $alpha: 1);
+      background-image:url('../images/closeBtn-thick.svg');
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 16px;
+    }
+    
+  }
+}
+
+.btn-area {
+  margin: 10px;
+
+}
+
+.transformToolBtn{
+  @include viewer-bbar-btn;
+  background-image: url(../images/transformToolBtn.svg);
+  &.activate{
+  
+    background-image: url(../images/transformToolBtn-activate.svg);
+  }
+}
+
+.explodeBtn{
+  @include viewer-bbar-btn;
+  background-image: url(../images/explodeBtn.svg);
+  &.activate{
+  
+    background-image: url(../images/explodeBtn-activate.svg);
+  }
+}
+
+.secondaryExplode{
+  @include viewer-bbar-btn;
+  background-image: url(../images/secondaryExplode.svg);
+  &.activate{
+  
+    background-image: url(../images/secondaryExplode-activate.svg);
+  }
+}
+
+.fullScreenBtn{
+  @include viewer-bbar-btn;
+  background-image: url(../images/fullScreenBtn.svg);
+  &.activate{
+    background-image: url(../images/fullScreenBtn-activate.svg);
+  } 
+}
+
+.sliceBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/sliceBtn.svg);
+  &.activate {
+    background-image: url(../images/sliceBtn-activate.svg);
+  }
+}
+
+.VRBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/VRBtn.svg);
+  &.activate {
+    background-image: url(../images/VRBtn-activate.svg);
+  }
+  &.unableVR {
+    opacity: 0.2;
+  }
+}
+
+.partMeunBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/partMeun.svg);
+  &.activate {
+    background-image: url(../images/partMeun-activate.svg);
+  }
+}
+
+.scutcheonBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/scutcheon.svg);
+  &.activate {
+    background-image: url(../images/scutcheon-activate.svg);
+  }
+}
+
+.SettingBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/settingBtn.svg);
+  &.activate {
+    background-image: url(../images/settingBtn-activate.svg);
+  }
+}
+.cut-line {
+  @include viewer-bbar-btn;
+  width: 1px;
+  border-left: 1px dashed rgba($color: #fff, $alpha: 0.2);
+  height: 40px;
+  margin-right: 10px
+}
+
+.CaremaResetBtn {
+  @include viewer-bbar-btn;
+  background-size:auto 90%;
+  padding-left: 10px;
+  background-image: url(../images/caremaResetBtn.svg);
+  &.activate {
+    background-image: url(../images/caremaResetBtn-activate.svg);
+  }
+}
+
+.structureBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/structureBtn.svg);
+  &.activate {
+    background-image: url(../images/structureBtn-activate.svg);
+  }
+}
+.measurePointBtn {
+  @include viewer-bbar-btn;
+  background-image: url(../images/measurePointBtn.svg);
+  &.activate {
+    background-image: url(../images/measurePointBtn-activate.svg);
+  }
+}
+
+.healthDegreeBtn {
+
+  @include viewer-bbar-btn;
+  background-image: url(../images/healthDegreeBtn.svg);
+  &.activate {
+    background-image: url(../images/healthDegreeBtn-activate.svg);
+  }
+
+}
+
+.wireframeBtn {
+
+  @include viewer-bbar-btn;
+  background-image: url(../images/wireframeBtn.svg);
+  &.activate {
+    background-image: url(../images/wireframeBtn-activate.svg);
+  }
+
+}
+
+.settingDisassemble {
+  @include viewer-bbar-btn;
+  background-image: url(../images/settingDisassemble.svg);
+  &.activate {
+    background-image: url(../images/settingDisassemble-activate.svg);
+  }
+}
+
+
+.viewer-structure {
+
+  position:absolute;
+  left:20px;
+  top:90px;
+  display: none;
+  width:300px;
+  max-height: calc(100vh - 220px);
+  overflow: hidden;
+  backdrop-filter: $backBlur;
+  border-radius: 6px;
+
+  p, div  {
+    color:#fff;
+    font-size: 16px;
+  }
+  
+  .close-button {
+    font-size:11px;
+    transition: opacity .1s linear;
+    border: 0;
+    line-height: 19px;
+    height: 20px;
+    cursor: pointer;
+    text-align: center;
+    background-color: #000;
+  }
+}
+
+.component-menu-popup {
+  width: 200px;
+  background: rgba(54, 54, 54, 0.9);
+  position: absolute;
+  bottom:90px;
+  left: calc(50% - 10px);
+  backdrop-filter: $backBlur;
+  border-radius: 6px;
+  overflow: hidden;
+
+  .menu-list-title {
+    line-height: 50px;
+    font-size: 18px;
+    color: #fff;
+    padding: 0px 20px;
+    background: rgba(0, 0, 0, 0.5);
+ 
+  }
+  
+  .menu-list-items {
+    margin: 0px;
+    padding: 0px;
+    padding: 10px 0px;
+  }
+  .menu-list-item {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: rgb(117, 117, 117);
+    
+    &.activate {
+      cursor: pointer;
+      color:#fff;
+      
+      &:hover {
+        background:rgba(0, 0, 0,0.2);
+      }
+    }
+    
+  }
+
+}
