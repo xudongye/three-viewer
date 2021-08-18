@@ -50,6 +50,7 @@ export class Viewer {
         this.el = el;
         this.options = options;
         this.state = {
+            background: false,
             addLights: true,
             exposure: 1.0,
             textureEncoding: 'sRGB',
@@ -66,6 +67,13 @@ export class Viewer {
         this.mixer = null;
         this.clips = [];
         this.prevTime = 0;
+
+        this.stats = new Stats();
+        [].forEach.call(this.stats.dom.children, (child) => (child.style.display = ''));
+        this.stats.dom.style.position = 'absolute';
+        this.stats.dom.style.top = 'unset';
+        this.stats.dom.style.bottom = '0px';
+        el.appendChild(this.stats.dom);
 
         this.scene = new Scene();
         const fov = 45;
@@ -87,13 +95,6 @@ export class Viewer {
         this.controls.autoRotate = false;
         this.controls.autoRotateSpeed = -10;
         this.controls.screenSpacePanning = true;
-
-
-        // this.vignette = createBackground({
-        //     aspect: this.defaultCamera.aspect,
-        //     grainScale: IS_IOS ? 0 : 0.001, // mattdesl/three-vignette-background#1
-        //     colors: [this.state.bgColor1, this.state.bgColor2]
-        // });
 
         this.el.appendChild(this.renderer.domElement);
 
@@ -130,6 +131,44 @@ export class Viewer {
         this.lights.push(light1, light2);
     }
 
+    updateEnvironment() {
+        const environment = {
+            id: 'venice-sunset',
+            name: 'Venice Sunset',
+            path: 'assets/environment/venice_sunset_1k.hdr',
+            format: '.hdr'
+        };
+        this.getCubeMapTexture(environment).then(({ envMap }) => {
+            this.scene.environment = envMap;
+            this.scene.background = this.state.background ? envMap : null;
+
+        });
+
+    }
+
+    getCubeMapTexture(environment) {
+        const { path } = environment;
+
+        // no envmap
+        if (!path) return Promise.resolve({ envMap: null });
+
+        return new Promise((resolve, reject) => {
+
+            new RGBELoader()
+                .setDataType(UnsignedByteType)
+                .load(path, (texture) => {
+
+                    const envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
+                    this.pmremGenerator.dispose();
+
+                    resolve({ envMap });
+
+                }, undefined, reject);
+
+        });
+
+    }
+
     updateTextureEncoding() {
         const encoding = this.state.textureEncoding === 'sRGB'
             ? sRGBEncoding
@@ -145,7 +184,7 @@ export class Viewer {
         requestAnimationFrame(this.animate);
         const dt = (time - this.prevTime) / 1000;
         this.controls.update();
-
+        this.stats.update();
         this.mixer && this.mixer.update(dt);
         this.render();
         this.prevTime = time;
@@ -244,7 +283,7 @@ export class Viewer {
         this.addLights();
         // this.updateLights();
         // this.updateGUI();
-        // this.updateEnvironment();
+        this.updateEnvironment();
         this.updateTextureEncoding();
         // this.updateDisplay();
         window.content = this.content;
