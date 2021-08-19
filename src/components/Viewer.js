@@ -15,9 +15,12 @@ import {
     PerspectiveCamera,
     RGBFormat,
     Scene,
+    Group,
     SkeletonHelper,
     UnsignedByteType,
     Vector3,
+    Vector2,
+    Raycaster,
     WebGLRenderer,
     sRGBEncoding,
 } from 'three';
@@ -107,6 +110,55 @@ export class Viewer {
     }
 
 
+    raycast(e) {
+        const { clientHeight, clientWidth } = this.el.parentElement;
+        let mouse = new Vector2();
+        mouse.x = (e.offsetX / clientWidth) * 2 - 1;
+        mouse.y = -(e.offsetY / clientHeight) * 2 + 1;
+        let selectNode = [];
+        let intersects = [];
+        let scene = this.scene;
+        let raycaster = this.raycaster;
+        raycaster.setFromCamera(mouse, this.activeCamera);
+        scene.children.map((item) => {
+            if (item instanceof Group) {
+                item.children.map((node) => {
+                    selectNode.push(node);
+                })
+            }
+        });
+        if (selectNode) {
+            intersects = raycaster.intersectObjects(selectNode, true);
+        }
+        if (intersects.length > 0) {
+            this.selectionProxy.clear();
+            let firstVisibleObjectIndex = -1;
+            for (var i = 0, len = intersects.length; i < len; i++) {
+                if (intersects[i].object && intersects[i].object.visible == true) {
+                    firstVisibleObjectIndex = i;
+                    this.currentModeName = intersects[i].object.name;
+                    this.currentModePosition = intersects[i].object.position;
+                    this.currentCameraLookAt = this.activeCamera.position;
+                    console.log('已选中：', intersects[i].object, intersects[i].object.name, intersects[i].object.position, this.activeCamera.position.x, this.activeCamera.position.y, this.activeCamera.position.z);
+                    console.log('点击位置：', intersects[i].point)
+                    break;
+                }
+            }
+
+            if (firstVisibleObjectIndex >= 0 && intersects[firstVisibleObjectIndex].object && intersects[firstVisibleObjectIndex].object.uuid) {
+                let pickedObject = intersects[firstVisibleObjectIndex].object;
+                console.log("x:" + intersects[firstVisibleObjectIndex].point.x + "  y:" + intersects[firstVisibleObjectIndex].point.y + "  z:" + intersects[firstVisibleObjectIndex].point.z);
+
+                if (this.pickedObject && this.pickedObject == pickedObject) {
+                    return;
+                }
+                this.selectionProxy.create(pickedObject);
+
+            }
+        }
+    }
+
+
     gltfLoadCompleted() {
         this.structureTree = new StructureTree(this.el, {
             content: this.content,
@@ -115,6 +167,20 @@ export class Viewer {
             clearSelection: () => { this.clearSelection() }
         })
         this.selectionProxy = new SelectionProxy(this.scene);
+        this.raycaster = new Raycaster();
+        this.renderer.domElement.addEventListener('mousedown', (e) => {
+            this.oX = e.pageX;
+            this.oY = e.pageY;
+        }, false);
+        this.renderer.domElement.addEventListener('mouseup', (e) => {
+            this.fX = e.pageX;
+            this.fY = e.pageY;
+            if (Math.abs(this.fX - this.oX) < 2 && Math.abs(this.fY - this.oY) < 2) {
+                this.raycast.apply(this, [e]);
+            }
+        }, false);
+        this.renderer.domElement.addEventListener('wheel', (e) => {
+        }, false);
     }
 
     clearSelection() {
