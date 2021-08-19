@@ -1,0 +1,201 @@
+@mixin backSvgStyle() {
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.viewer-structure {
+  .panel-title {
+    background:rgba(0, 0, 0, 0.8);
+    padding:0px 20px;
+    height: 50px;
+    display: flex;
+      justify-content: space-between; 
+    align-items: center;
+  
+  
+    p {
+      margin: 0px;
+      float: left;
+    }
+    .panel-close-btn {
+      @include backSvgStyle;
+      width: 20px;
+      height: 20px;   
+      background-size: 80% ;
+      cursor: pointer;
+      background-image:url('../images/closeBtn.svg');
+      float:right;
+      
+    }
+  }
+
+  .panel-control {
+    line-height: 30px;
+    background:rgba(0, 0, 0, 0.8);
+    padding: 0px 20px;
+    border-top: 1px solid rgba($color: #fff, $alpha: 0.1);
+    
+    
+    .control-show-bnt {
+      float:right;
+      font-size: 14px;
+      color: #477bdc;
+      cursor: pointer;
+    }
+  
+  }
+}
+
+
+
+
+.json-container {
+	font-family: 'Open Sans';
+  font-size: 16px;
+  height: calc(100vh - 300px);
+  overflow-y: scroll;
+ 
+	background-color:rgba($color: #363636, $alpha: 0.9);
+	box-sizing: border-box;
+    //max-height:100%;
+
+	.line {
+    height: 36px;
+    line-height: 36px;
+    display: flex;
+
+    border-bottom: 1px solid rgba($color: #000, $alpha: 0.2);
+	    cursor: pointer;
+	    &:hover {
+        background-color:rgba($color: #000, $alpha: 0.2);
+        color:#fff;
+      }
+      &.active {
+        background:#477bdc;
+        color:#fff;  
+        border-bottom:1px solid  #477bdc;
+      }
+      div {
+        float: left;
+        &:last-child {
+          float: none;
+          clear: both;
+        }
+      }
+   
+    .part-perspective {
+      @include backSvgStyle;
+            
+      flex: 0 0 26px;
+      height: 100%;
+      background-size: 60% auto;
+      background-image: url(../images/zoomTool.svg); 
+
+    }
+      
+    .hide-btn {  
+      @include backSvgStyle;
+      background-size: 60% auto;
+      flex: 0 0 26px;
+      height: 100%;
+      float:right;
+      background-image: url(../images/openEye.svg);    
+    }
+
+  } 
+  .hidePart {
+    div {
+      opacity: 0.3;
+    }
+   
+    .hide-btn {
+      background-image: url(../images/closedEye.svg);
+    }
+  }
+  
+
+	.caret-icon {
+		width: 18px;
+	  height: 100%;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+		cursor: pointer;
+	    position: relative;
+  }
+ 
+
+	.empty-icon {
+    width: 18px;
+	}
+
+	.json-type {
+		margin-right: 4px;
+		margin-left: 4px;
+	}
+
+	.json-key {
+		margin-left: 4px;
+    white-space: nowrap;
+    width: calc(100% - 70px);
+    flex: 1 1 auto;
+    text-overflow:ellipsis;
+    display: inline-block;
+    white-space: nowrap; 
+    width: 100%; 
+    overflow: hidden;
+	}
+
+	.json-index {
+		margin-right: 4px;
+		margin-left: 4px;
+	}
+
+	.json-separator {
+
+	}
+
+	.json-value {
+		margin-left: 8px;
+	}
+
+	.json-number {
+		color: #f9ae58;
+	}
+
+	.json-boolean {
+		color: #ec5f66;
+	}
+
+	.json-string {
+		color: #86b25c;
+	}
+
+	.json-size {
+		margin-right: 4px;
+		margin-left: 4px;
+	}
+
+	.hide {
+		display: none;
+  }
+
+
+	.fas {
+		display: inline-block;
+		width: 0;
+		height: 0;
+		border-style: solid;
+	}
+
+	.fa-caret-down {
+		border-width: 6px 5px 0 5px;
+		border-color: #fff transparent;
+	}
+
+	.fa-caret-right {
+		border-width: 5px 0 5px 6px;
+		border-color: transparent transparent transparent #fff;
+	}
+}

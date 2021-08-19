@@ -31,6 +31,8 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { createElement, getElementWidth, getElementHeight } from '../utility/dom-helper';
 import '../scss/three-viewer.scss';
 import { ToolBar } from './ToolBar';
+import { SelectionProxy } from './SelectionProxy';
+import { StructureTree } from './StructureTree';
 
 // var createBackground = require('three-vignette-background');
 
@@ -41,7 +43,6 @@ export class Viewer {
         this.el = el;
         this.options = options;
         this.state = {
-            wireframe: false,
             background: false,
             addLights: true,
             exposure: 1.0,
@@ -53,6 +54,7 @@ export class Viewer {
             bgColor1: '#ffffff',
             bgColor2: '#353535'
         }
+        this.pickedObject = null;
 
         this.lights = [];
         this.content = null;
@@ -99,16 +101,69 @@ export class Viewer {
 
     init() {
         this.toolbar = new ToolBar(this.el, {
-            setWireframe: () => { this.setWireframe() }
-        })
-
+            startUpWireframe: (val) => { this.setWireframe(val) },
+            showStructureTree: (val) => { this.showStructureTree(val) }
+        });
     }
 
-    setWireframe() {
-        debugger
-        traverseMaterials(this.content, (material) => {
-            material.wireframe = this.state.wireframe;
+
+    gltfLoadCompleted() {
+        this.structureTree = new StructureTree(this.el, {
+            content: this.content,
+            showStructureTree: (val) => { this.showStructureTree(val) },
+            seletedByUUId: (id) => { this.seletedByUUId(id) },
+            clearSelection: () => { this.clearSelection() }
         })
+        this.selectionProxy = new SelectionProxy(this.scene);
+    }
+
+    clearSelection() {
+        this.selectionProxy.clear();
+        this.pickedObject = null;
+    }
+
+    seletedByUUId(uuid) {
+        let target = null;
+        this.scene.traverse((child) => {
+            if (child.uuid == uuid) {
+                return target = child;
+            }
+        });
+        if (target) {
+            if (this.pickedObject) {
+                this.selectionProxy.clear();
+            }
+            if (target.children.length > 0) {
+                target.traverse((val) => {
+                    if (val.isMesh) {
+                        this.selectionProxy.create(val);
+                    }
+                });
+            } else {
+                this.selectionProxy.create(target);
+            }
+            this.pickedObject = target;
+        }
+    }
+
+    /**
+     * 设置线框模式
+     * @param {是否展示线框模式}} val 
+     */
+    setWireframe(val) {
+        const that = this;
+        traverseMaterials(that.content, (material) => {
+            material.wireframe = val;
+        })
+    }
+
+    showStructureTree(val) {
+        const structureObj = document.querySelector('.viewer-structure');
+        if (val && structureObj) {
+            structureObj.style.display = 'block';
+        } else {
+            structureObj.style.display = 'none';
+        }
     }
 
 
@@ -119,6 +174,9 @@ export class Viewer {
         this.renderer.setSize(clientWidth, clientHeight);
     }
 
+    /**
+     * 设置灯光组件
+     */
     addLights() {
         const state = this.state;
         const light1 = new AmbientLight(state.ambientColor, state.ambientIntensity);
@@ -132,6 +190,9 @@ export class Viewer {
         this.lights.push(light1, light2);
     }
 
+    /**
+     * 加载高清环境贴图
+     */
     updateEnvironment() {
         const environment = {
             id: 'venice-sunset',
@@ -181,6 +242,10 @@ export class Viewer {
         });
     }
 
+    /**
+     * 渲染器定时执行
+     * @param {定时执行} time 
+     */
     animate(time) {
         requestAnimationFrame(this.animate);
         const dt = (time - this.prevTime) / 1000;
@@ -229,7 +294,7 @@ export class Viewer {
         }
     }
 
-    setContent(object, clips) {
+    setContent(object, clips, loadCallback) {
         // this.clear();
 
         const box = new Box3().setFromObject(object);
@@ -267,6 +332,7 @@ export class Viewer {
         this.controls.saveState();
 
         this.scene.add(object);
+
         this.content = object;
 
         this.state.addLights = true;
@@ -290,6 +356,8 @@ export class Viewer {
         window.content = this.content;
         console.info('[glTF Viewer] Scene exported as `window.content`.');
         this.printGraph(this.content);
+        //模型场景灯光相机所有设置完成
+        loadCallback.gltfLoadCompleted(object);
     }
 
 
@@ -300,7 +368,6 @@ export class Viewer {
         console.groupEnd();
 
     }
-
 
     load(url, rootPath, assetMap) {
         const baseURL = LoaderUtils.extractUrlBase(url);
@@ -337,7 +404,7 @@ export class Viewer {
                         + ' it may contain individual 3D resources.'
                     );
                 }
-                this.setContent(scene, clips);
+                this.setContent(scene, clips, { gltfLoadCompleted: this.gltfLoadCompleted.bind(this) });
                 blobURLs.forEach(URL.revokeObjectURL);
                 resolve(gltf);
             }, undefined, reject);

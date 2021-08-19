@@ -14,8 +14,10 @@ export class ToolBar {
             width: null
         }
         this.opt = Object.assign({
-            setWireframe: () => { }
-        })
+            startUpWireframe: (val) => { },
+            showStructureTree: (val) => { }
+        }, opt || {});
+
         this.init();
     }
 
@@ -54,8 +56,10 @@ export class ToolBar {
         structureBtn.addEventListener('click', () => {
             if (structureBtn.classList == 'structureBtn activate') {
                 structureBtn.classList.remove('activate');
+                that.opt.showStructureTree(false);
             } else {
                 structureBtn.classList.add('activate');
+                that.opt.showStructureTree(true);
             }
         })
         domEl.appendChild(structureBtn);
@@ -119,9 +123,10 @@ export class ToolBar {
         wireframeBtn.addEventListener('click', () => {
             if (wireframeBtn.classList == 'wireframeBtn activate') {
                 wireframeBtn.classList.remove('activate');
+                that.opt.startUpWireframe(false);
             } else {
                 wireframeBtn.classList.add('activate');
-                that.opt.setWireframe();
+                that.opt.startUpWireframe(true);
             }
         })
         domEl.appendChild(wireframeBtn);
@@ -154,6 +159,7 @@ export class ToolBar {
     }
 
     collapseToolbar() {
+
         let tweenOneParam = null;
         let tweenTwoParam = null;
         let btnAreaDefaultHeight = 60;
