@@ -24,6 +24,7 @@ import {
     WebGLRenderer,
     sRGBEncoding,
 } from 'three';
+import { GUI } from 'dat.gui';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
@@ -46,6 +47,8 @@ export class Viewer {
         this.el = el;
         this.options = options;
         this.state = {
+            structureTree: false,
+            wireframe: false,
             background: false,
             addLights: true,
             exposure: 1.0,
@@ -63,6 +66,7 @@ export class Viewer {
         this.content = null;
         this.mixer = null;
         this.clips = [];
+        this.gui = null;
         this.prevTime = 0;
 
         this.stats = new Stats();
@@ -94,7 +98,7 @@ export class Viewer {
         this.controls.screenSpacePanning = true;
 
         this.el.appendChild(this.renderer.domElement);
-
+        this.addGUI();
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
         window.addEventListener('resize', this.resize.bind(this), false);
@@ -103,10 +107,10 @@ export class Viewer {
     }
 
     init() {
-        this.toolbar = new ToolBar(this.el, {
-            startUpWireframe: (val) => { this.setWireframe(val) },
-            showStructureTree: (val) => { this.showStructureTree(val) }
-        });
+        // this.toolbar = new ToolBar(this.el, {
+        //     startUpWireframe: (val) => { this.setWireframe(val) },
+        //     showStructureTree: (val) => { this.showStructureTree(val) }
+        // });
     }
 
 
@@ -130,8 +134,8 @@ export class Viewer {
         if (selectNode) {
             intersects = raycaster.intersectObjects(selectNode, true);
         }
+        this.selectionProxy.clear();
         if (intersects.length > 0) {
-            this.selectionProxy.clear();
             let firstVisibleObjectIndex = -1;
             for (var i = 0, len = intersects.length; i < len; i++) {
                 if (intersects[i].object && intersects[i].object.visible == true) {
@@ -212,6 +216,20 @@ export class Viewer {
         }
     }
 
+
+    addGUI() {
+        const gui = this.gui = new GUI({ autoPlace: false, width: 260, hideable: true });
+        this.el.appendChild(this.gui.domElement);
+        const displayFolder = gui.addFolder('显示');
+        const envBackgroundCtrl = displayFolder.add(this.state, 'background');
+        envBackgroundCtrl.onChange(() => this.updateEnvironment());
+        const structureCtl = displayFolder.add(this.state, 'structureTree');
+        structureCtl.onChange(() => { this.showStructureTree(this.state.structureTree) })
+        const wireframeCtrl = displayFolder.add(this.state, 'wireframe');
+        wireframeCtrl.onChange(() => this.setWireframe(this.state.wireframe));
+        displayFolder.add(this.controls, 'autoRotate');
+    }
+
     /**
      * 设置线框模式
      * @param {是否展示线框模式}} val 
@@ -269,7 +287,6 @@ export class Viewer {
         this.getCubeMapTexture(environment).then(({ envMap }) => {
             this.scene.environment = envMap;
             this.scene.background = this.state.background ? envMap : null;
-
         });
 
     }

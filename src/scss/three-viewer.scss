@@ -13,13 +13,19 @@ $viewer-btn-width:80px;
   background-position: center center;
   background-size: auto 80%;
 }
-.three-viewer {
-  position: relative;
-  background-color: #d6d7d9;  //d6d7d9
-  // background-image:url('./images/three-viewer-bg.png');
-  // background-size: 100% auto;
-  // background-repeat: no-repeat;
-  // background-position: center;
+.viewer {
+    width: 100%;
+    height: 100%;
+    flex-grow: 1;
+    flex-shrink: 1;
+    position: absolute;
+    top: 0;
+    z-index: 0;
+    // background-color: #d6d7d9;  //d6d7d9
+    // background-image:url('../images/three-viewer-bg.png');
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    background-position: center;
 
   &.wireframePattern {
     background-color: #011830; 

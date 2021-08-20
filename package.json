@@ -20,7 +20,7 @@
     "@superguigui/wagner": "git+https://gitee.com/irememberu/Wagner.git",
     "animejs": "^3.2.1",
     "cesium": "^1.81.0",
-    "dat-gui": "^0.5.0",
+    "dat.gui": "^0.7.7",
     "font-awesome": "^4.7.0",
     "glob-to-regexp": "^0.4.1",
     "glsl-blend-soft-light": "^1.0.5",
