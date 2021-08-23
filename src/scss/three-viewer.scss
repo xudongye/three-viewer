@@ -21,11 +21,11 @@ $viewer-btn-width:80px;
     position: absolute;
     top: 0;
     z-index: 0;
-    // background-color: #d6d7d9;  //d6d7d9
-    // background-image:url('../images/three-viewer-bg.png');
-    background-size: 100% auto;
-    background-repeat: no-repeat;
-    background-position: center;
+    
+    // background-color: #124abb;  //d6d7d9
+    background:url('../images/bg3.png') no-repeat;
+    background-size: 100% 100%;
+   
 
   &.wireframePattern {
     background-color: #011830; 

@@ -23,6 +23,7 @@ import {
     Raycaster,
     WebGLRenderer,
     sRGBEncoding,
+    Color
 } from 'three';
 import { GUI } from 'dat.gui';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -82,10 +83,10 @@ export class Viewer {
         this.activeCamera = this.defaultCamera;
 
         this.scene.add(this.defaultCamera);
-        this.renderer = window.renderer = new WebGLRenderer({ antialias: true });
+        this.renderer = window.renderer = new WebGLRenderer({ antialias: true, alpha: true });
         this.renderer.physicallyCorrectLights = true;
         this.renderer.outputEncoding = sRGBEncoding;
-        this.renderer.setClearColor(0xcccccc);
+        this.renderer.setClearColor(0xffffff, 0);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(el.clientWidth, el.clientHeight);
 
@@ -114,6 +115,11 @@ export class Viewer {
     }
 
 
+    /**
+     * 屏幕点击事件
+     * @param {*} e 
+     * @returns 
+     */
     raycast(e) {
         const { clientHeight, clientWidth } = this.el.parentElement;
         let mouse = new Vector2();
@@ -187,11 +193,18 @@ export class Viewer {
         }, false);
     }
 
+    /**
+     * 清除选中部件
+     */
     clearSelection() {
         this.selectionProxy.clear();
         this.pickedObject = null;
     }
 
+    /**
+     * 
+     * @param {通过uuid选中部件} uuid 
+     */
     seletedByUUId(uuid) {
         let target = null;
         this.scene.traverse((child) => {
@@ -241,6 +254,10 @@ export class Viewer {
         })
     }
 
+    /**
+     * 
+     * @param {bol是否显示模型结构树} val 
+     */
     showStructureTree(val) {
         const structureObj = document.querySelector('.viewer-structure');
         if (val && structureObj) {
@@ -288,7 +305,6 @@ export class Viewer {
             this.scene.environment = envMap;
             this.scene.background = this.state.background ? envMap : null;
         });
-
     }
 
     getCubeMapTexture(environment) {
