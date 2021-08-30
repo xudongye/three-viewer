@@ -425,7 +425,7 @@ export class Viewer {
     }
 
     /**
-     * 通过模型包围盒计算模型爆炸
+     * 爆炸前记录模型位置信息
      */
     calcuExpand() {
         const modelBox = new Box3().expandByObject(this.content);
