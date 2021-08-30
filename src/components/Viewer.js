@@ -59,7 +59,10 @@ export class Viewer {
             directIntensity: 0.8 * Math.PI, // TODO(#116)
             directColor: 0xFFFFFF,
             bgColor1: '#ffffff',
-            bgColor2: '#353535'
+            bgColor2: '#353535',
+            playbackSpeed: 0.2,
+            actionStates: {},
+            firstExpandScalar: 0.1
         }
         this.pickedObject = null;
 
@@ -191,6 +194,18 @@ export class Viewer {
         }, false);
         this.renderer.domElement.addEventListener('wheel', (e) => {
         }, false);
+        // this.playAllClips();
+    }
+
+    /**
+     * 内置动画自动播放
+     */
+    playAllClips() {
+        this.clips.forEach((item) => {
+            this.mixer.timeScale = this.state.playbackSpeed;
+            this.mixer.clipAction(item).reset().play();
+            this.state.actionStates[item.name] = true;
+        })
     }
 
     /**
@@ -241,6 +256,10 @@ export class Viewer {
         const wireframeCtrl = displayFolder.add(this.state, 'wireframe');
         wireframeCtrl.onChange(() => this.setWireframe(this.state.wireframe));
         displayFolder.add(this.controls, 'autoRotate');
+
+        const expandFolder = gui.addFolder("分解");
+        const expandCtrl = expandFolder.add(this.state, 'firstExpandScalar', 0, 1);
+        expandCtrl.onChange(() => this.expand());
     }
 
     /**
@@ -391,6 +410,41 @@ export class Viewer {
                 }
             });
         }
+    }
+
+    /**
+     * 
+     * 模型爆炸
+     */
+    expand() {
+        this.calcuExpand();
+        this.content.traverse((node) => {
+            if (!node.isMesh || !node.worldDir) return;
+            node.position.copy(new Vector3().copy(node.userData.oldPs).add(new Vector3().copy(node.worldDir).multiplyScalar(this.state.firstExpandScalar)));
+        })
+    }
+
+    /**
+     * 通过模型包围盒计算模型爆炸
+     */
+    calcuExpand() {
+        const modelBox = new Box3().expandByObject(this.content);
+        //计算模型的中心坐标，以这个为爆炸中心
+        const modelPs = new Vector3().addVectors(modelBox.max, modelBox.min).multiplyScalar(0.5);
+        const meshBox = new Box3();
+        this.content.traverse((node) => {
+            if (node.isMesh) {
+                meshBox.setFromObject(node);
+                //获取每个mesh的中心点，爆炸方向为爆炸的中心点指向mesh中心点
+                const meshPs = new Vector3().addVectors(meshBox.max, meshBox.min).multiplyScalar(0.5);
+                if (isNaN(meshPs.x)) return;
+                //计算爆炸方向
+                node.worldDir = new Vector3().subVectors(meshPs, modelPs).normalize();
+                //保存初始坐标
+                node.userData.oldPs = node.getWorldPosition(new Vector3());
+            }
+        })
+
     }
 
     setContent(object, clips, loadCallback) {
