@@ -412,6 +412,7 @@ export class Viewer {
         }
     }
 
+
     /**
      * 
      * 模型爆炸
@@ -445,6 +446,42 @@ export class Viewer {
             }
         })
 
+    }
+
+
+    expandFirst() {
+        const modelWorldPs = new Vector3(0, 0, 0);
+        // const modelBox = new Box3().expandByObject(this.content);
+        this.content.traverse((node) => {
+            if (node.isMesh && node.children.length === 0) {
+                // node.material.transparent = 1;
+                // node.material.opacity = 1;
+                const meshBox = new Box3().setFromObject(node);
+                this.calcuExpand(meshBox, node, modelWorldPs, this.state.firstExpandScalar, 0)
+            }
+        })
+    }
+
+    /**
+  * 
+  * @param {包围盒} box
+  * @param {模型} obj 
+  * @param {模型中心位置} position 
+  * @param {爆炸系数} scalar 
+  * @param {爆炸模式：0：零件级别 1：组件级别} mode 
+  */
+    calcuExpandSingle(box, obj, position, scalar, mode) {
+        const worldPs = new Vector3().addVectors(box.max, box.min).multiplyScalar(0.5);
+        if (mode == 0) {
+            obj.userData.oldPs = obj.geometry.boundingSphere.center;
+        } else {
+            obj.userData.oldPs = new Vector3().addVectors(box.max, box.min).multiplyScalar(0.5);
+        }
+        //计算爆炸方向
+        obj.worldDir = new Vector3().subVectors(worldPs, position).normalize();
+        //爆炸公式
+        if (!obj.worldDir) return;
+        obj.position.copy(new Vector3().copy(obj.userData.oldPs).multiplyScalar(scalar * 333));
     }
 
     setContent(object, clips, loadCallback) {
@@ -508,7 +545,7 @@ export class Viewer {
         // this.updateDisplay();
         window.content = this.content;
         console.info('[glTF Viewer] Scene exported as `window.content`.');
-        this.printGraph(this.content);
+        // this.printGraph(this.content);
         //模型场景灯光相机所有设置完成
         loadCallback.gltfLoadCompleted(object);
     }
