@@ -16,6 +16,7 @@ import {
     RGBFormat,
     Scene,
     Group,
+    Mesh,
     SkeletonHelper,
     UnsignedByteType,
     Vector3,
@@ -23,7 +24,12 @@ import {
     Raycaster,
     WebGLRenderer,
     sRGBEncoding,
-    Color
+    Color,
+    PlaneGeometry,
+    ShadowMaterial,
+    MeshBasicMaterial,
+    TextureLoader,
+    PlaneBufferGeometry
 } from 'three';
 import { GUI } from 'dat.gui';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
@@ -38,6 +44,8 @@ import '../scss/three-viewer.scss';
 import { ToolBar } from './ToolBar';
 import { SelectionProxy } from './SelectionProxy';
 import { StructureTree } from './StructureTree';
+import groundTextureAlphamapPic from '../images/ground_scene.png';
+import { cli } from 'webpack';
 
 // var createBackground = require('three-vignette-background');
 
@@ -66,12 +74,16 @@ export class Viewer {
         }
         this.pickedObject = null;
 
+        this.maxSize = null; //包围盒最大的模型
+
         this.lights = [];
-        this.content = null;
+        this.content = new Group();
+        this.content.name = 'sceneRoot';
         this.mixer = null;
         this.clips = [];
         this.gui = null;
         this.prevTime = 0;
+        this.gridHelper = null;
 
         this.stats = new Stats();
         [].forEach.call(this.stats.dom.children, (child) => (child.style.display = ''));
@@ -115,8 +127,50 @@ export class Viewer {
         //     startUpWireframe: (val) => { this.setWireframe(val) },
         //     showStructureTree: (val) => { this.showStructureTree(val) }
         // });
+
     }
 
+
+    /**
+     * 
+     * @param {基于包围盒定位地坪} positionY 
+     */
+    addGridHelper(box) {
+
+        const ox1 = box.max.x;
+        const oy1 = box.max.y;
+        const oz1 = box.max.z;
+
+        const ox2 = box.min.x;
+        const oy2 = box.min.y;
+        const oz2 = box.min.z;
+
+        var baseSize = 1;
+        if (Math.abs(ox1 - ox2) > Math.abs(oz1 - oz2)) {
+            baseSize = Math.abs(ox1 - ox2);
+        } else {
+            baseSize = Math.abs(oz1 - oz2);
+        }
+
+        this.gridHelper = new GridHelper(baseSize * 40, 100, 0x000000, 0x000000);
+        this.gridHelper.material.opacity = 0.2;
+        this.gridHelper.material.transparent = true;
+        this.gridHelper.position.y = oy2 - oy1;
+        this.scene.add(this.gridHelper);
+
+        new TextureLoader().load(
+            groundTextureAlphamapPic,
+            (texture) => {
+                const ground = new Mesh(new PlaneBufferGeometry(baseSize * 2, baseSize * 2), new MeshBasicMaterial({ map: texture }));
+                ground.material.transparent = true;
+                // ground.receiveShadow = true;
+                ground.rotation.x = - Math.PI / 2;
+                ground.position.y = oy2 - oy1;
+                this.scene.add(ground);
+            }
+        )
+
+    }
 
     /**
      * 屏幕点击事件
@@ -194,7 +248,7 @@ export class Viewer {
         }, false);
         this.renderer.domElement.addEventListener('wheel', (e) => {
         }, false);
-        // this.playAllClips();
+        this.playAllClips();
     }
 
     /**
@@ -202,9 +256,11 @@ export class Viewer {
      */
     playAllClips() {
         this.clips.forEach((item) => {
-            this.mixer.timeScale = this.state.playbackSpeed;
-            this.mixer.clipAction(item).reset().play();
-            this.state.actionStates[item.name] = true;
+            item.forEach((val) => {
+                this.mixer.timeScale = this.state.playbackSpeed;
+                this.mixer.clipAction(val).reset().play();
+                this.state.actionStates[val.name] = true;
+            })
         })
     }
 
@@ -294,6 +350,31 @@ export class Viewer {
         this.renderer.setSize(clientWidth, clientHeight);
     }
 
+    updateLights() {
+        const state = this.state;
+        const lights = this.lights;
+
+        if (state.addLights && !lights.length) {
+            this.addLights();
+        } else if (!state.addLights && lights.length) {
+            this.removeLights();
+        }
+
+        this.renderer.toneMappingExposure = state.exposure;
+
+        if (lights.length === 2) {
+            lights[0].intensity = state.ambientIntensity;
+            lights[0].color.setHex(state.ambientColor);
+            lights[1].intensity = state.directIntensity;
+            lights[1].color.setHex(state.directColor);
+        }
+    }
+
+    removeLights() {
+        this.lights.forEach((light) => light.parent.remove(light));
+        this.lights.length = 0;
+    }
+
     /**
      * 设置灯光组件
      */
@@ -379,9 +460,7 @@ export class Viewer {
         this.renderer.render(this.scene, this.activeCamera);
     }
 
-    /**
-     * @param {Array<AnimationClip} clips
-     */
+
     setClips(clips) {
         if (this.mixer) {
             this.mixer.stopAllAction();
@@ -389,8 +468,8 @@ export class Viewer {
             this.mixer = null;
         }
 
-        this.clips = clips;
-        if (!clips.length) return;
+        this.clips.push(clips);
+        if (!this.clips.length) return;
 
         this.mixer = new AnimationMixer(this.content);
     }
@@ -437,7 +516,7 @@ export class Viewer {
             if (node.isMesh) {
                 meshBox.setFromObject(node);
                 //获取每个mesh的中心点，爆炸方向为爆炸的中心点指向mesh中心点
-                const meshPs = new Vector3().addVectors(meshBox.max, meshBox.min).multiplyScalar(0.5);
+                var meshPs = new Vector3().addVectors(meshBox.max, meshBox.min).multiplyScalar(0.5);
                 if (isNaN(meshPs.x)) return;
                 //计算爆炸方向
                 node.worldDir = new Vector3().subVectors(meshPs, modelPs).normalize();
@@ -448,54 +527,20 @@ export class Viewer {
 
     }
 
-
-    expandFirst() {
-        const modelWorldPs = new Vector3(0, 0, 0);
-        // const modelBox = new Box3().expandByObject(this.content);
-        this.content.traverse((node) => {
-            if (node.isMesh && node.children.length === 0) {
-                // node.material.transparent = 1;
-                // node.material.opacity = 1;
-                const meshBox = new Box3().setFromObject(node);
-                this.calcuExpand(meshBox, node, modelWorldPs, this.state.firstExpandScalar, 0)
-            }
-        })
-    }
-
-    /**
-  * 
-  * @param {包围盒} box
-  * @param {模型} obj 
-  * @param {模型中心位置} position 
-  * @param {爆炸系数} scalar 
-  * @param {爆炸模式：0：零件级别 1：组件级别} mode 
-  */
-    calcuExpandSingle(box, obj, position, scalar, mode) {
-        const worldPs = new Vector3().addVectors(box.max, box.min).multiplyScalar(0.5);
-        if (mode == 0) {
-            obj.userData.oldPs = obj.geometry.boundingSphere.center;
-        } else {
-            obj.userData.oldPs = new Vector3().addVectors(box.max, box.min).multiplyScalar(0.5);
-        }
-        //计算爆炸方向
-        obj.worldDir = new Vector3().subVectors(worldPs, position).normalize();
-        //爆炸公式
-        if (!obj.worldDir) return;
-        obj.position.copy(new Vector3().copy(obj.userData.oldPs).multiplyScalar(scalar * 333));
-    }
-
     setContent(object, clips, loadCallback) {
         // this.clear();
-
-        const box = new Box3().setFromObject(object);
+        this.content.add(object);
+        const box = new Box3().setFromObject(this.content);
         const size = box.getSize(new Vector3()).length();
         const center = box.getCenter(new Vector3());
 
-        this.controls.reset(object, clips);
+        this.gridHelper ? '' : this.addGridHelper(box);
 
-        object.position.x += (object.position.x - center.x);
-        object.position.y += (object.position.y - center.y);
-        object.position.z += (object.position.z - center.z);
+        this.controls.reset(this.content, this.clips);
+
+        this.content.position.x += (this.content.position.x - center.x);
+        this.content.position.y += (this.content.position.y - center.y);
+        this.content.position.z += (this.content.position.z - center.z);
 
         this.controls.maxDistance = size * 10;
         this.defaultCamera.near = size / 100;
@@ -510,9 +555,9 @@ export class Viewer {
         } else {
 
             this.defaultCamera.position.copy(center);
-            this.defaultCamera.position.x += size / 1.4;
+            this.defaultCamera.position.x += size / 1.6;
             this.defaultCamera.position.y += size / 4.0;
-            this.defaultCamera.position.z += size / 1.4;
+            this.defaultCamera.position.z += size / 1.6;
             this.defaultCamera.lookAt(center);
 
         }
@@ -521,9 +566,7 @@ export class Viewer {
 
         this.controls.saveState();
 
-        this.scene.add(object);
-
-        this.content = object;
+        this.scene.add(this.content);
 
         this.state.addLights = true;
 
@@ -537,8 +580,7 @@ export class Viewer {
         });
 
         this.setClips(clips);
-        this.addLights();
-        // this.updateLights();
+        this.updateLights();
         // this.updateGUI();
         this.updateEnvironment();
         this.updateTextureEncoding();
@@ -547,7 +589,7 @@ export class Viewer {
         console.info('[glTF Viewer] Scene exported as `window.content`.');
         // this.printGraph(this.content);
         //模型场景灯光相机所有设置完成
-        loadCallback.gltfLoadCompleted(object);
+        loadCallback.gltfLoadCompleted(this.content);
     }
 
 
@@ -561,7 +603,6 @@ export class Viewer {
 
     load(url, rootPath, assetMap) {
         const baseURL = LoaderUtils.extractUrlBase(url);
-
         return new Promise((resolve, reject) => {
             //正在加载的文件管理
             const manager = new LoadingManager();
@@ -594,6 +635,8 @@ export class Viewer {
                         + ' it may contain individual 3D resources.'
                     );
                 }
+                // this.content.add(scene);
+                // this.clips.push(clips);
                 this.setContent(scene, clips, { gltfLoadCompleted: this.gltfLoadCompleted.bind(this) });
                 blobURLs.forEach(URL.revokeObjectURL);
                 resolve(gltf);

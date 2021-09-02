@@ -92,24 +92,27 @@ class App {
    */
     view(rootFile, rootPath, fileMap) {
 
-        const viewer = this.viewer || this.createViewer();
-        const fileURL = typeof rootFile === 'string'
-            ? rootFile
-            : URL.createObjectURL(rootFile);
-        const cleanup = () => {
-            this.hideSpinner();
-            if (typeof rootFile === 'object') URL.revokeObjectURL(fileURL);
-        };
+        fileMap.forEach((item) => {
+            rootFile = item;
+            const viewer = this.viewer || this.createViewer();
+            const fileURL = typeof rootFile === 'string'
+                ? rootFile
+                : URL.createObjectURL(rootFile);
+            const cleanup = () => {
+                this.hideSpinner();
+                if (typeof rootFile === 'object') URL.revokeObjectURL(fileURL);
+            };
 
-        viewer
-            .load(fileURL, rootPath, fileMap)
-            .catch((e) => this.onError(e))
-            .then((gltf) => {
-                if (!this.options.kiosk) {
-                    // this.validationCtrl.validate(fileURL, rootPath, fileMap, gltf);
-                }
-                cleanup();
-            });
+            viewer
+                .load(fileURL, rootPath, fileMap)
+                .catch((e) => this.onError(e))
+                .then((gltf) => {
+                    if (!this.options.kiosk) {
+                        // this.validationCtrl.validate(fileURL, rootPath, fileMap, gltf);
+                    }
+                    cleanup();
+                });
+        })
     }
 
 
