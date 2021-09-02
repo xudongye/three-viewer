@@ -45,7 +45,6 @@ import { ToolBar } from './ToolBar';
 import { SelectionProxy } from './SelectionProxy';
 import { StructureTree } from './StructureTree';
 import groundTextureAlphamapPic from '../images/ground_scene.png';
-import { cli } from 'webpack';
 
 // var createBackground = require('three-vignette-background');
 
